@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         if (personal.nfl.browser.ui.BuildConfig.APPLICATION_ID != "personal.nfl.browser") {
             WebViewBrowserActivity.url = personal.nfl.browser.ui.BuildConfig.baseUrl
             val intent = Intent(this, WebViewBrowserActivity::class.java)
-            if (!personal.nfl.browser.ui.BuildConfig.APPLICATION_ID?.contains("browser")) {
+            if (!personal.nfl.browser.ui.BuildConfig.APPLICATION_ID.contains("browser")) {
                 intent.putExtra(
                     WebViewBrowserActivity.INIT_SCREEN_ORIENTATION,
                     ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -61,7 +61,7 @@ fun Greeting(name: String) {
 fun openUrl() {
     val context = LocalContext.current
     Column() {
-        var url by remember { mutableStateOf("https://192.168.1.110:8443/#browse") }
+        var url by remember { mutableStateOf("https://www.baidu.com") }
         OutlinedTextField(value = url, onValueChange = {
             url = it
         },

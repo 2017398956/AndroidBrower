@@ -38,8 +38,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import personal.nfl.browser.util.FileUtil;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -52,6 +50,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import personal.nfl.browser.util.FileUtil;
 
 /**
  * This activity is designed for starting a "mini-browser" for manual testing of WebView.
@@ -78,6 +78,7 @@ public class WebViewBrowserActivity extends Activity {
 
     // Map from WebKit permissions to Android permissions
     private static final HashMap<String, String> sPermissions;
+
     static {
         sPermissions = new HashMap<String, String>();
         sPermissions.put(RESOURCE_GEO, Manifest.permission.ACCESS_FINE_LOCATION);
@@ -124,7 +125,7 @@ public class WebViewBrowserActivity extends Activity {
 
         @Override
         public String[] getResources() {
-            return new String[] { WebViewBrowserActivity.RESOURCE_GEO };
+            return new String[]{WebViewBrowserActivity.RESOURCE_GEO};
         }
 
         @Override
@@ -157,7 +158,7 @@ public class WebViewBrowserActivity extends Activity {
 
         @Override
         public String[] getResources() {
-            return new String[] { WebViewBrowserActivity.RESOURCE_FILE_URL };
+            return new String[]{WebViewBrowserActivity.RESOURCE_FILE_URL};
         }
 
         @Override
@@ -200,18 +201,15 @@ public class WebViewBrowserActivity extends Activity {
         private void showDialog(long nbBytes) {
             StringBuilder info = new StringBuilder();
             info.append("Tracing data written to file\n");
-            info.append("number of bytes: " + nbBytes);
+            info.append("number of bytes: ").append(nbBytes);
 
-            mActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    AlertDialog dialog = new AlertDialog.Builder(mActivity)
-                                                 .setTitle("Tracing API")
-                                                 .setMessage(info)
-                                                 .setNeutralButton(" OK ", null)
-                                                 .create();
-                    dialog.show();
-                }
+            mActivity.runOnUiThread(() -> {
+                AlertDialog dialog = new AlertDialog.Builder(mActivity)
+                        .setTitle("Tracing API")
+                        .setMessage(info)
+                        .setNeutralButton(" OK ", null)
+                        .create();
+                dialog.show();
             });
         }
     }
@@ -237,8 +235,8 @@ public class WebViewBrowserActivity extends Activity {
                 mWebView.reload();
                 mWebView.requestFocus();
                 return;
-            }else {
-                url  = WebViewBrowserActivity.url ;
+            } else {
+                url = WebViewBrowserActivity.url;
             }
             // Make sure to load a blank page to make it immediately inspectable with
             // chrome://inspect.
@@ -318,7 +316,7 @@ public class WebViewBrowserActivity extends Activity {
             @SuppressWarnings("deprecation") // because we support api level 19 and up.
             @Override
             public void onReceivedError(WebView view, int errorCode, String description,
-                    String failingUrl) {
+                                        String failingUrl) {
             }
 
             @Override
@@ -331,12 +329,12 @@ public class WebViewBrowserActivity extends Activity {
             @Override
             public Bitmap getDefaultVideoPoster() {
                 return Bitmap.createBitmap(
-                        new int[] {Color.TRANSPARENT}, 1, 1, Bitmap.Config.ARGB_8888);
+                        new int[]{Color.TRANSPARENT}, 1, 1, Bitmap.Config.ARGB_8888);
             }
 
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin,
-                    GeolocationPermissions.Callback callback) {
+                                                           GeolocationPermissions.Callback callback) {
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
                     // Pre Lollipop versions (< api level 21) do not have PermissionRequest,
                     // hence grant here immediately.
@@ -484,7 +482,7 @@ public class WebViewBrowserActivity extends Activity {
     @Override
     @SuppressLint("NewApi") // PermissionRequest#deny requires API level 21.
     public void onRequestPermissionsResult(int requestCode,
-            String permissions[], int[] grantResults) {
+                                           String permissions[], int[] grantResults) {
         if (requestCode == 101 || requestCode == 102 || requestCode == 103) {
             return;
         }
@@ -517,14 +515,30 @@ public class WebViewBrowserActivity extends Activity {
         settings.setJavaScriptEnabled(true);
 
         // configure local storage apis and their database paths.
-        settings.setAppCachePath(appcache.getPath());
-        settings.setGeolocationDatabasePath(geolocation.getPath());
+        // The Application Cache API is deprecated and this method will
+        // become a no-op on all Android versions once support is
+        // removed in Chromium. Consider using Service Workers instead.
+        // See https://web.dev/appcache-removal/ for more information.
+        // 由于在 Android 高版本上，下面的两个方法没有了，所以这里通过反射设置，以兼容低版本
+        try {
+            // settings.setAppCachePath(appcache.getPath());
+            Method setAppCachePath = WebSettings.class.getDeclaredMethod("setAppCachePath", String.class);
+            setAppCachePath.setAccessible(true);
+            setAppCachePath.invoke(settings, appcache.getPath());
+            // settings.setAppCacheEnabled(true);
+            Method setAppCacheEnabled = WebSettings.class.getDeclaredMethod("setAppCacheEnabled", Boolean.class);
+            setAppCacheEnabled.setAccessible(true);
+            setAppCacheEnabled.invoke(settings, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        settings.setAppCacheEnabled(true);
-        settings.setGeolocationEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setDomStorageEnabled(true);
 
+        settings.setGeolocationDatabasePath(geolocation.getPath());
+        settings.setGeolocationEnabled(true);
+
+        settings.setDomStorageEnabled(true);
         // Default layout behavior for chrome on android.
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
@@ -541,7 +555,8 @@ public class WebViewBrowserActivity extends Activity {
             try {
                 summary.append(method.getName() + " : " + method.invoke(settings) + "\n");
             } catch (IllegalAccessException e) {
-            } catch (InvocationTargetException e) { }
+            } catch (InvocationTargetException e) {
+            }
         }
     }
 
@@ -557,7 +572,7 @@ public class WebViewBrowserActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && "file".equals(Uri.parse(url).getScheme())
                 && PackageManager.PERMISSION_DENIED
-                        == checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                == checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)) {
             requestPermissionsForPage(new FilePermissionRequest(url));
         }
 
@@ -570,6 +585,7 @@ public class WebViewBrowserActivity extends Activity {
 
     /**
      * Hides the keyboard.
+     *
      * @param view The {@link View} that is currently accepting input.
      * @return Whether the keyboard was visible before.
      */
@@ -585,11 +601,11 @@ public class WebViewBrowserActivity extends Activity {
 
     static final Pattern BROWSER_URI_SCHEMA = Pattern.compile(
             "(?i)"   // switch on case insensitive matching
-            + "("    // begin group for schema
-            + "(?:http|https|file):\\/\\/"
-            + "|(?:inline|data|about|chrome|javascript):"
-            + ")"
-            + "(.*)");
+                    + "("    // begin group for schema
+                    + "(?:http|https|file):\\/\\/"
+                    + "|(?:inline|data|about|chrome|javascript):"
+                    + ")"
+                    + "(.*)");
 
     private static boolean startBrowsingIntent(Context context, String url) {
         Intent intent;
